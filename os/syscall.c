@@ -133,7 +133,6 @@ uint64 sys_mmap(uint64 start, uint64 len, int port, int flag, int fd){
 			errorf("mmap:map va to pa failed,possibly already mapped");
 			return -1;
 	    }
-		errorf("success:mmaped:va:0x%x pa:0x%x",va,pa);
 		mapped_pages++;
 		va += PAGE_SIZE;
 	}
@@ -171,7 +170,7 @@ uint64 sys_munmap(uint64 start, uint64 len){
 		num--;
 	}
 	// unmap and free at end, so as to "handle" va unmap and pa free when map failed
-	uvmunmap(p->pagetable,start,PGROUNDUP(len),1);
+	uvmunmap(p->pagetable,start,PGROUNDUP(len) / PAGE_SIZE,1);
 	return 0;
 }
 

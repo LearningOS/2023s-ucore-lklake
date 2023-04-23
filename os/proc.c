@@ -6,7 +6,7 @@
 #include "queue.h"
 
 struct proc pool[NPROC];
-__attribute__((aligned(16))) char kstack[NPROC][PAGE_SIZE];
+__attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
 __attribute__((aligned(4096))) char trapframe[NPROC][TRAP_PAGE_SIZE];
 
 extern char boot_stack_top[];
@@ -155,6 +155,7 @@ void yield()
 void freepagetable(pagetable_t pagetable, uint64 max_page)
 {
 	uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+	// TODO: TRAP_PAGE_SIZE
 	uvmunmap(pagetable, TRAPFRAME, 1, 0);
 	uvmfree(pagetable, max_page);
 }

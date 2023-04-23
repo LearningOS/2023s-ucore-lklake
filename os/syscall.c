@@ -94,8 +94,42 @@ uint64 sys_wait(int pid, uint64 va)
 
 uint64 sys_spawn(uint64 va)
 {
-	// TODO: your job is to complete the sys call
-	return -1;
+	struct proc *p = curr_proc();
+	struct proc *np = curr_proc();
+
+	// Allocate process.
+	if ((np = allocproc()) == 0) {
+		return -1;
+	}
+
+	// now:
+	// np->context.ra is (uint64)usertrapret;
+	// np->context.sp is p->kstack + KSTACK_SIZE;
+
+	char name[200];
+	copyinstr(p->pagetable, name, va, 200);
+	int id = get_id_by_name(name);
+	if (id < 0)
+		return -1;
+	loader(id, np);
+
+	// now:
+	// np->ustack is va_end + PAGE_SIZE;
+	// np->trapframe->sp is np->ustack + USTACK_SIZE;
+	// np->trapframe->epc is va_start;
+	// np->max_page is PGROUNDUP(np->ustack + USTACK_SIZE - 1) / PAGE_SIZE;
+	// np->program_brk is np->ustack + USTACK_SIZE;
+    // np->heap_bottom is np->ustack + USTACK_SIZE;
+	// np->state is RUNNABLE;
+
+	np->parent = p;
+	// new process return 0
+	np->trapframe->a0 = 0;
+
+	// new process can be scheduled
+	add_task(np);
+
+	return np->pid;
 }
 
 uint64 sys_set_priority(long long prio){

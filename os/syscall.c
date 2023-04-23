@@ -103,7 +103,7 @@ uint64 sys_set_priority(long long prio){
     return -1;
 }
 
-
+// EXT TODO alloced memory need to free when program exits
 uint64 sys_sbrk(int n)
 {
         uint64 addr;
@@ -287,8 +287,14 @@ void syscall()
 		ret = sys_spawn(args[0]);
 		break;
 	case SYS_sbrk:
-                ret = sys_sbrk(args[0]);
-                break;
+        ret = sys_sbrk(args[0]);
+        break;
+	case SYS_mmap:
+	    ret = sys_mmap(args[0],args[1],args[2],args[3],args[4]);
+		break;
+	case SYS_munmap:
+	    ret = sys_munmap(args[0],args[1]);
+		break;
 	default:
 		ret = -1;
 		errorf("unknown syscall %d", id);

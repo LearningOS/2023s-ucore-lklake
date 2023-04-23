@@ -61,6 +61,8 @@ int bin_loader(uint64 start, uint64 end, struct proc *p)
 			panic("...");
 	}
 	// map ustack
+	// stacktop va is one page higner than end of program
+	// stack has USTACK_SIZE space 
 	p->ustack = va_end + PAGE_SIZE;
 	for (uint64 va = p->ustack; va < p->ustack + USTACK_SIZE;
 	     va += PGSIZE) {

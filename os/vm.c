@@ -144,7 +144,7 @@ void uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 
 	if ((va % PGSIZE) != 0)
 		panic("uvmunmap: not aligned");
-
+		
 	for (a = va; a < va + npages * PGSIZE; a += PGSIZE) {
 		if ((pte = walk(pagetable, a, 0)) == 0)
 			continue;
@@ -175,6 +175,7 @@ pagetable_t uvmcreate(uint64 trapframe)
 		     PTE_R | PTE_X) < 0) {
 		panic("mappages fail");
 	}
+	// TODO TRAP_PAGE_SIZE
 	if (mappages(pagetable, TRAPFRAME, PGSIZE, trapframe, PTE_R | PTE_W) <
 	    0) {
 		panic("mappages fail");
@@ -195,7 +196,16 @@ void freewalk(pagetable_t pagetable)
 			freewalk((pagetable_t)child);
 			pagetable[i] = 0;
 		} else if (pte & PTE_V) {
-			panic("freewalk: leaf");
+			if(get_page_ref(PTE2PA(pte)) == 1){
+				// this frame is owned by current process，although should be freed before
+				// but we can help to free it now.
+				warnf("helped to unmap and free memory\n");
+				uvmunmap(pagetable,PTE2PA(pte),1,1);
+				// panic("then what about freewalk: leaf");
+			}else{
+				// can not figure out if this frame is owned by others, sorry we cannot help. 
+				panic("freewalk: leaf");
+			}
 		}
 	}
 	kfree((void *)pagetable);

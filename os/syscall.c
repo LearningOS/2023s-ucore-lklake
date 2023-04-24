@@ -133,8 +133,13 @@ uint64 sys_spawn(uint64 va)
 }
 
 uint64 sys_set_priority(long long prio){
-    // TODO: your job is to complete the sys call
-    return -1;
+    if(prio < 2){
+		errorf("prio need to in [2, isize_max]");
+		return -1;
+	}
+	struct proc *p = curr_proc();
+	p->priority = prio;
+	return prio;
 }
 
 // EXT TODO alloced memory need to free when program exits
@@ -266,7 +271,7 @@ uint64 sys_munmap(uint64 start, uint64 len){
 uint64 sys_task_info(TaskInfo* info){
 	TaskInfo k_info;
 	struct proc *p = curr_proc();
-	uint64 current_time_ms = get_cycle() / CPU_FREQ * 1000 + (get_cycle() % CPU_FREQ) * 1000 / CPU_FREQ;
+	uint64 current_time_ms = get_time_now();
 
 	k_info.status = Running;
 	k_info.time = (int)(current_time_ms - p->time);
@@ -286,6 +291,7 @@ void syscall()
 			   trapframe->a3, trapframe->a4, trapframe->a5 };
 	tracef("syscall %d args = [%x, %x, %x, %x, %x, %x]", id, args[0],
 	       args[1], args[2], args[3], args[4], args[5]);
+	curr_proc()->syscall_times[id]++;
 	switch (id) {
 	case SYS_write:
 		ret = sys_write(args[0], args[1], args[2]);
@@ -323,11 +329,17 @@ void syscall()
 	case SYS_sbrk:
         ret = sys_sbrk(args[0]);
         break;
+	case SYS_task_info:
+	    ret = sys_task_info((TaskInfo*)args[0]);
+		break;
 	case SYS_mmap:
 	    ret = sys_mmap(args[0],args[1],args[2],args[3],args[4]);
 		break;
 	case SYS_munmap:
 	    ret = sys_munmap(args[0],args[1]);
+		break;
+	case SYS_setpriority:
+	    ret = sys_set_priority(args[0]);
 		break;
 	default:
 		ret = -1;

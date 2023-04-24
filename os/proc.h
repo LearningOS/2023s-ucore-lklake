@@ -48,7 +48,9 @@ struct proc {
 	uint64 program_brk;
 	uint64 heap_bottom;
 	unsigned int syscall_times[MAX_SYSCALL_NUM];
-	int time;
+	uint64 time;
+	uint64 stride;
+	uint64 priority;
 };
 typedef enum {
 	UnInit,

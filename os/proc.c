@@ -3,7 +3,10 @@
 #include "loader.h"
 #include "trap.h"
 #include "vm.h"
+#include "timer.h"
 #include "queue.h"
+
+int64 BIGSTRIDE = 0x7fffffffffffffff;
 
 struct proc pool[NPROC];
 __attribute__((aligned(16))) char kstack[NPROC][KSTACK_SIZE];
@@ -47,19 +50,20 @@ int allocpid()
 
 struct proc *fetch_task()
 {
-	int index = pop_queue(&task_queue);
-	if (index < 0) {
-		debugf("No task to fetch\n");
-		return NULL;
-	}
-	debugf("fetch task %d(pid=%d) to task queue\n", index, pool[index].pid);
-	return pool + index;
+	// int index = pop_queue(&task_queue);
+	// if (index < 0) {
+	// 	debugf("No task to fetch\n");
+	// 	return NULL;
+	// }
+	// debugf("fetch task %d(pid=%d) to task queue\n", index, pool[index].pid);
+	// return pool + index;
+	return NULL;
 }
 
 void add_task(struct proc *p)
 {
-	push_queue(&task_queue, p - pool);
-	debugf("add task %d(pid=%d) to task queue\n", p - pool, p->pid);
+	// push_queue(&task_queue, p - pool);
+	// debugf("add task %d(pid=%d) to task queue\n", p - pool, p->pid);
 }
 
 // Look in the process table for an UNUSED proc.
@@ -91,6 +95,13 @@ found:
 	memset((void *)p->trapframe, 0, TRAP_PAGE_SIZE);
 	p->context.ra = (uint64)usertrapret;
 	p->context.sp = p->kstack + KSTACK_SIZE;
+
+	// initialize added member
+	memset(p->syscall_times,0,sizeof(p->syscall_times));
+	p->time = 0;
+	p->stride = 0;
+	p->priority = 16;
+
 	return p;
 }
 
@@ -103,19 +114,54 @@ void scheduler()
 {
 	struct proc *p;
 	for (;;) {
-		/*int has_proc = 0;
+		struct proc *next_proc = NULL;
+		for (p = pool; p < &pool[NPROC]; p++) {
+			if (p->state == RUNNABLE) {
+				if(p->time == 0 ){
+					p->time = get_time_now();
+				}
+				if(!next_proc){
+					next_proc = p;
+					continue;
+				}
+				tracef("stride:%p %d\n",p->stride,(int64)(p->stride - next_proc->stride));
+				if((int64)(p->stride - next_proc->stride) < 0){
+					next_proc = p;
+				}
+			}
+		}
+		if(next_proc == NULL) {
+			panic("all app are over!\n");
+		}
+
+
+		tracef("swtich to proc %d", next_proc - pool);
+		tracef("prio before %p", next_proc->stride);
+		next_proc->stride += (BIGSTRIDE/next_proc->priority);
+		tracef("prio after %p", next_proc->stride);
+
+		next_proc->state = RUNNING;
+		current_proc = next_proc;
+
+		swtch(&idle.context, &next_proc->context);
+
+		/* int has_proc = 0;
 		for (p = pool; p < &pool[NPROC]; p++) {
 			if (p->state == RUNNABLE) {
 				has_proc = 1;
+				if(p->time == 0 ){
+					p->time = get_time_now();
+				}
 				tracef("swtich to proc %d", p - pool);
-				p->state = RUNNING;
-				current_proc = p;
-				swtch(&idle.context, &p->context);
+ 				// p->state = RUNNING;
+				// current_proc = p;
+				// swtch(&idle.context, &p->context);
 			}
 		}
-		if(has_proc == 0) {
+	    if(has_proc == 0) {
 			panic("all app are over!\n");
-		}*/
+		}
+		
 		p = fetch_task();
 		if (p == NULL) {
 			panic("all app are over!\n");
@@ -123,7 +169,7 @@ void scheduler()
 		tracef("swtich to proc %d", p - pool);
 		p->state = RUNNING;
 		current_proc = p;
-		swtch(&idle.context, &p->context);
+		swtch(&idle.context, &p->context); */
 	}
 }
 
@@ -186,6 +232,7 @@ int fork()
 	// Cause fork to return 0 in the child.
 	np->trapframe->a0 = 0;
 	np->parent = p;
+	np->stride = p->stride;
 	np->state = RUNNABLE;
 	add_task(np);
 	return np->pid;

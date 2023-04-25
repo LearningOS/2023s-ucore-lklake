@@ -49,5 +49,8 @@ uint64 inodewrite(struct file *, uint64, uint64);
 uint64 inoderead(struct file *, uint64, uint64);
 struct file *stdio_init(int);
 int show_all_files();
-
+/*=========================start=========================*/
+int create_hlink(char *oldpath,char *newpath);
+int remove_hlink(char *path);
+/*=======================================================*/
 #endif // FILE_H

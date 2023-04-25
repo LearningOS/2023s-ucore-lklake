@@ -5,7 +5,9 @@
 #include "syscall_ids.h"
 #include "timer.h"
 #include "trap.h"
-
+/*===========================start=================================*/
+#include "file.h"
+/*=================================================================*/
 uint64 console_write(uint64 va, uint64 len)
 {
 	struct proc *p = curr_proc();
@@ -204,20 +206,26 @@ int sys_fstat(int fd, uint64 stat)
 
 	return 0;
 }
-
+/*===========================start=================================*/
 int sys_linkat(int olddirfd, uint64 oldpath, int newdirfd, uint64 newpath,
 	       uint64 flags)
 {
-	//TODO: your job is to complete the syscall
-	return -1;
+	struct proc *p = curr_proc();
+	char path1[200];char path2[200];
+	copyinstr(p->pagetable, path1, oldpath, 200);
+	copyinstr(p->pagetable, path2, newpath, 200);
+
+	return create_hlink(path1,path2);
 }
 
 int sys_unlinkat(int dirfd, uint64 name, uint64 flags)
 {
-	//TODO: your job is to complete the syscall
-	return -1;
+	struct proc *p = curr_proc();
+	char path[200];;
+	copyinstr(p->pagetable, path, name, 200);
+	return remove_hlink(path);
 }
-
+/*=================================================================*/
 uint64 sys_sbrk(int n)
 {
 	uint64 addr;

@@ -114,6 +114,8 @@ struct inode *ialloc(uint dev, short type)
 		if (dip->type == 0) { // a free inode
 			memset(dip, 0, sizeof(*dip));
 			dip->type = type;
+			// dip is memsetted to zero...so we need to set dip->nlink hear!
+			dip->nlink = 1;
 			bwrite(bp);
 			brelse(bp);
 			return iget(dev, inum);
@@ -137,6 +139,7 @@ void iupdate(struct inode *ip)
 	dip->type = ip->type;
 	dip->size = ip->size;
 	// LAB4: you may need to update link count here
+	dip->nlink = ip->nlink;
 	memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
 	bwrite(bp);
 	brelse(bp);
@@ -190,6 +193,7 @@ void ivalid(struct inode *ip)
 		ip->type = dip->type;
 		ip->size = dip->size;
 		// LAB4: You may need to get lint count here
+		ip->nlink = dip->nlink;
 		memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
 		brelse(bp);
 		ip->valid = 1;

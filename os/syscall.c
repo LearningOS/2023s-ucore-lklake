@@ -165,10 +165,44 @@ uint64 sys_close(int fd)
 	return 0;
 }
 
+struct Stat {
+   uint64 dev;     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+   uint64 ino;     // inode 文件所在 inode 编号
+   uint32 mode;    // 文件类型
+   uint32 nlink;   // 硬链接数量，初始为1
+   uint64 pad[7];  // 无需考虑，为了兼容性设计
+};
+
+// 文件类型只需要考虑:
+#define DIR 0x040000              // directory
+#define FILE 0x100000             // ordinary regular file
+
 int sys_fstat(int fd, uint64 stat)
 {
-	//TODO: your job is to complete the syscall
-	return -1;
+	if (fd < 0 || fd > FD_BUFFER_SIZE)
+		return -1;
+	struct proc *p = curr_proc();
+	struct file *f = p->files[fd];
+	if (f == NULL) {
+		errorf("invalid fd %d", fd);
+		return -1;
+	}
+
+	struct Stat tmp_stat;
+	tmp_stat.dev = 0;
+	tmp_stat.ino = f->ip->inum;
+	tmp_stat.mode = f->ip->type == T_FILE ? FILE : DIR;
+	tmp_stat.nlink = f->ip->nlink;
+	copyout(p->pagetable,(uint64)stat,(char *)&tmp_stat,sizeof(struct Stat));
+// 	{
+//    uint64 dev,     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+//    uint64 ino,     // inode 文件所在 inode 编号
+//    uint32 mode,    // 文件类型
+//    uint32 nlink,   // 硬链接数量，初始为1
+//    uint64 pad[7],  // 无需考虑，为了兼容性设计
+// }
+
+	return 0;
 }
 
 int sys_linkat(int olddirfd, uint64 oldpath, int newdirfd, uint64 newpath,
